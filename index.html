@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hangman</title>
+    <style>
+        .innpakning {
+            width: 600px;
+            margin: auto;
+            border: 2px solid black;
+            padding-left: 20px;
+            padding-right: 20px;
+            margin-bottom: 30px;
+        }
+        canvas {
+            background-color: white;
+        }
+        input[type="text"] {
+            width: 30%;
+        }
+        button {
+            background-color: azure;
+            border: 2px solid black;
+            padding: 2px;
+        }
+        button:hover {
+            background-color: lightpink;
+            cursor: pointer;
+        }
+        .floatRight {
+            float: right;
+        }
+        .flexbox {
+            display: flex;
+            text-align: center;
+            align-content: space-between;
+            flex-wrap: wrap;
+        }
+        .flexbox div {
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="innpakning">
+        <div class="floatRight">
+           <p>Nikitas Hi-Score: 12</p>
+           <p id="hiScore">Din Hi-Score: </p>
+           <p id="poeng">Poeng: </p>
+            <p id="mottaBokstav">
+                <input type="text" name="bokstav" id="bokstav">
+                <button id="knapp">Test bokstav</button>
+            </p>
+        </div>
+        <h1>Hangman</h1>
+        <p id="sjanserIgjen">Antall sjanser igjen:</p>
+        <p id="riktigBokstaver">Dine bokstaver:</p>
+        <p id="brukteBokstaver">Gjettede bokstaver:</p>
+        <canvas width="600" height="400" id="mittCanvas"></canvas>
+        
+    </div>
+    <div class="innpakning">
+       <h1 style="text-align: center">Velg Add-on Pakker!</h1>
+        <div class="flexbox">
+            <div>
+               <img src="Konosuba.png" width="290">
+               <div>
+                   <input class="pakke" type="checkbox"> Anime Pakke
+               </div>
+            </div>
+            <div>
+               <img src="hovedby.png" width="290">
+               <div>
+                   <input class="pakke" type="checkbox"> Hovedstater Pakke
+               </div>
+            </div>
+            <div>
+               <img src="meme.png" width="290">
+                <div>
+                   <input class="pakke" type="checkbox"> Meme Pakke
+               </div>
+            </div>
+            <div>
+               <img src="words.png" width="290">
+               <div>
+                   <input class="pakke" type="checkbox"> Vanlig Ord Pakke
+               </div>
+            </div>
+        </div>
+    </div>
+    <div class="innpakning">
+        <p>
+            <input type="text" name="nyttOrd" id="nyttOrd">
+            <button id="ordKnapp">Legg til ord</button>
+            <button id="slettOrdKnapp">Slett Siste Ordet</button>
+            <button id="slettAlleOrdKnapp">Slett Alle Ordene</button>
+            <button id="restartSpill">Restart Spillet</button>
+            <button id="visOrd">+</button>
+        </p>
+        <p class="dineOrd">Dine ord: </p>
+    </div>
+    <script>
+        var canvas = document.querySelector("#mittCanvas");
+        var ctx = canvas.getContext("2d");
+        
+        var tekstfeltEl = document.querySelector("#bokstav");
+        var sjangerIgjenEl = document.querySelector("#sjanserIgjen");
+        var riktigeBokstaverEl = document.querySelector("#riktigBokstaver");
+        var brukteBokstaverEl = document.querySelector("#brukteBokstaver");
+        var getAllePakker = document.querySelectorAll(".pakke"); // tar alle ordpakkene i en array
+        var getVisOrd = document.querySelector("#visOrd"); // Knapp for å vise alle losningsordene som er i arrayen i consolen
+        
+        // ORD-PAKKER SOM ARRAYS
+        var konosubaPakke = ["ANIME", "KONOSUBA", "RE:ZERO", "REM", "RAM", "EMILIA", "I LOVE EMILIA", "ZERO TWO", "NEZUKO", "AQUA", "DARKNESS", "MEGUMIN", "KAZUMA", "SUBARU", "HIGURASHI WHEN THEY CRY", "MOB PSHYCO", "LUCKY STAR", "DEATH NOTE", "ASTOLFO", "LOLI", "LOLICON", "ARA ARA", "SENPAI", "HENTAI", "BOKU NO PICO", "UGLY BASTARD", "NETORARE", "DOUJIN", "WEEB", "UMARU-CHAN", "BODY PILLOW", "WAIFU"];
+        var hovedstatPakke = ["LONDON", "OSLO", "JERUSALEM", "KIEV", "MOSKVA", "WASHINGTON", "WARSZAWA", "WELLINGTON", "ZAGREB", "WIEN", "TAIPEI", "SUVA", "STOCKHOLM", "SOFIA", "SINGAPORE", "SEOUL", "TOKYO", "SAN SALVADOR", "RIGA", "RABAT", "PARIS", "MONACO", "MINSK", "MEXICO BY", "LIMA", "LISBOA", "KØBENHAVN", "KAIRO", "ISLAMABAD", "HELSINGFORS", "HAVANNA", "HANOI", "DUBLIN", "MOGADISHU", "BERLIN"];
+        var memePakke = ["ABDI", "AMAR", "MILAD", "FEHO", "NIKITA", "WAH WAY", "PATRICK", "DANIJAL", "ABIDA", "REM OVER AQUA", "I DID NOT HIT HER", "I HAVE THE HIGH GROUND", "OH YES YES", "CHARLIE BIT MY FINGER!", "HELLO THERE", "FORTNITE", "OLD TOWN ROAD", "YEAH BOOOOOOOOOOOOOOOI", "TROLOLO", "#THEDRESS", "DAB", "ALL YOUR BASE ARE BELONG TO US", "RICKROLLING", "PEPE THE FROG", "U MAD BRO?", "HARAMBE", "NYAN CAT"];
+        var vanligPakke = ["MUSIKK", "PROGRAMMERING", "SPRÅK", "ENGELSK", "WEBSIDE", "KATT", "HUND", "BJERKE", "NORGE", "EUROPA", "JOBB", "FILM", "VIDEO", "KRABBE", "BJØRN", "FISK", "SNAKKE", "PSYKOLOGI", "FYSIKK"];
+        
+        // ORD-PAKKER (legger eventlistener på ordpakkene)
+        getAllePakker[0].addEventListener("click", checkIf0);
+        getAllePakker[1].addEventListener("click", checkIf1);
+        getAllePakker[2].addEventListener("click", checkIf2);
+        getAllePakker[3].addEventListener("click", checkIf3);
+        
+        
+        var knappEl = document.querySelector("#knapp");
+        knappEl.addEventListener("click", mottaBokstav);
+        var bodyEl = document.querySelector("body");
+        bodyEl.addEventListener("keydown", enter);
+        
+        var losningsordene  = ["DIMITRY", "CATGIRL", "MUSEUM", "BURGER", "REOL", "FREDAG"];
+        var losningsord = losningsordene[Math.floor(Math.random() * losningsordene.length)];
+        var antallGjettet = 0;
+        
+        var brukteBokstaver = [];
+        var riktigeBokstaver = [];
+        for (var i = 0; i < losningsord.length; i++) {
+            riktigeBokstaver[i] = "_";
+        }
+        var antallSjanser = 6;
+        tegnGalge();
+        
+        riktigeBokstaverEl.innerHTML = "Riktige bokstaver: " + riktigeBokstaver;
+        
+        // POENG-SYSTEM
+        var getPoeng = document.querySelector("#poeng");
+        var getHiScore = document.querySelector("#hiScore");
+        
+        var poeng = 0;
+        var hiscore = 0;
+        
+        getHiScore.innerHTML = "Din Hi-Score: " + hiscore;
+        getPoeng.innerHTML = "Poeng: " + poeng;
+        
+        function mottaBokstav() {
+            var gjettetBokstav = tekstfeltEl.value[0];
+            gjettetBokstav = gjettetBokstav.toUpperCase();
+            
+            if (brukteBokstaver.indexOf(gjettetBokstav) === -1) {
+                brukteBokstaver.push(gjettetBokstav);
+
+                if (losningsord.indexOf(gjettetBokstav) === -1) {
+                    antallSjanser -= 1;
+                } else {
+                    for (var i = 0; i < losningsord.length; i++) {
+                        if(losningsord[i] === gjettetBokstav) {
+                            riktigeBokstaver[i] = gjettetBokstav;
+                            antallGjettet++;
+                        }
+                    }
+                }
+            } else {
+                alert("Bokstaven er allerede gjettet!");
+            }
+            
+            if (antallSjanser === 5) {
+                tegnHode();
+            } else if (antallSjanser === 4) {
+                tegnKropp();
+            } else if (antallSjanser === 3) {
+                tegnVenstreArm();
+            } else if (antallSjanser === 2) {
+                tegnHoyreArm();
+            } else if (antallSjanser === 1) {
+                tegnVenstreBein();
+            } else if (antallSjanser === 0) {
+                tegnHoyreBein();
+                var tapteOrd = prompt("Du tapte!\nHvis du vil vite løsningordet som var skriv: ord");
+                if (tapteOrd === "ord") {
+                    alert(losningsord);
+                }
+                restartSpillet(); // restarter
+                // restarter poeng-system
+                poeng = 0;
+                getPoeng.innerHTML = "Poeng: " + poeng;
+            }
+            
+            console.log("Du trykket på knappen.");
+            brukteBokstaver.sort();
+            brukteBokstaverEl.innerHTML = "Brukte bokstaver: " + brukteBokstaver;
+            riktigeBokstaverEl.innerHTML = "Riktige bokstaver: " + riktigeBokstaver;
+            sjangerIgjenEl.innerHTML = "Antall sjanser igjen: " + antallSjanser;
+            
+            tekstfeltEl.value = "";
+            
+            if (antallGjettet === losningsord.length) { // hvis brukeren gjetter hele ordet riktig så kommer det et nytt et
+                alert("Du vant! Det riktige svaret var " + losningsord + "!\nVi velger et nytt random løsningsord for deg :D");
+                restartSpillet(); // du finner funksjonen lengre nedover, restarter spillet
+                poeng++; // plusser til poeng
+                if (poeng > hiscore) {
+                    hiscore = poeng;
+                    getHiScore.innerHTML = "Din Hi-Score: " + hiscore;
+                }
+                getPoeng.innerHTML = "Poeng: " + poeng;
+            }
+        }
+        
+        function enter(e) {
+            if (e.keyCode === 13) {
+                mottaBokstav();
+            }
+        }
+        
+        // LEGG TIL MER ORD ( OG RESTART KNAPP)
+        var getOrdKnapp = document.querySelector("#ordKnapp");
+        var getTekstfeltOrd = document.querySelector("#nyttOrd");
+        var getDineOrd = document.querySelector(".dineOrd");
+        var getSlettOrdKnapp = document.querySelector("#slettOrdKnapp")
+        var getslettAlleOrdKnapp = document.querySelector("#slettAlleOrdKnapp")
+        var getRestartSpill = document.querySelector("#restartSpill"); // restart knapp
+        
+        getVisOrd.addEventListener("click", visOrd); // Knapp for å vise alle losningsordene som er i arrayen i consolen
+        
+        getOrdKnapp.addEventListener("click", leggOrd);
+        getSlettOrdKnapp.addEventListener("click", slettOrd);
+        getslettAlleOrdKnapp.addEventListener("click", slettAlleOrd);
+        getRestartSpill.addEventListener("click", restartSpillet); // restart knapp
+        getRestartSpill.addEventListener("click", nullstill); // restart knapp, nullstill poeng
+        
+        function leggOrd() {
+            losningsordene.push(getTekstfeltOrd.value.toUpperCase());
+            getDineOrd.innerHTML = "Dine ord: " + losningsordene;
+        }
+        function slettOrd() {
+            losningsordene.pop();
+            getDineOrd.innerHTML = "Dine ord: " + losningsordene;
+        }
+        function slettAlleOrd() {
+            losningsordene = [];
+            getDineOrd.innerHTML = "Dine ord: " + losningsordene;
+        }
+        function nullstill() { // restart knapp, poeng nullstill
+            poeng = 0;
+            getPoeng.innerHTML = "Poeng: " + poeng;
+        }
+        function visOrd() { // Knapp for å vise alle losningsordene som er i arrayen i consolen
+            console.log(losningsordene);
+        }
+        
+        // RESTART FUNKSJON
+        
+        function restartSpillet() {
+            losningsord = losningsordene[Math.floor(Math.random() * losningsordene.length)];
+            antallGjettet = 0;
+
+            brukteBokstaver = [];
+            riktigeBokstaver = [];
+            for (var i = 0; i < losningsord.length; i++) {
+                riktigeBokstaver[i] = "_";
+            }
+            antallSjanser = 6;
+            tegnGalge();
+            
+            brukteBokstaverEl.innerHTML = "Brukte bokstaver: " + brukteBokstaver;
+            riktigeBokstaverEl.innerHTML = "Riktige bokstaver: " + riktigeBokstaver;
+            sjangerIgjenEl.innerHTML = "Antall sjanser igjen: " + antallSjanser;  
+        }
+        
+        // ORD-PAKKER
+        
+        // funksjon for Anime pakken
+        function checkIf0() {
+            if (getAllePakker[0].checked) { // Anime pakken
+                for (var i = 0; i < konosubaPakke.length; i++) {
+                    losningsordene.push(konosubaPakke[i]);
+                }
+                alert("Pakken legget til");
+            } else {
+                var k = konosubaPakke.length - 1;
+                for (var i = losningsordene.length - 1; i >= 0; i--) {
+                    console.log(losningsordene[i] + " vs " + konosubaPakke[k]);
+                    if (losningsordene[i] === konosubaPakke[k]) {
+                        console.log("SLICED: " + losningsordene[i])
+                        losningsordene.splice(i, 1);
+                        k--;
+                        // break;       //<-- Ukommenter bare hvis du trenger at det første ordet skal bli slettet
+                    }
+                }
+                alert("Pakken fjernet");
+            }
+        }
+        // funksjon for Hovedstater pakken
+        function checkIf1() {
+            if (getAllePakker[1].checked) { // Hovedstat pakken
+                for (var i = 0; i < hovedstatPakke.length; i++) {
+                    losningsordene.push(hovedstatPakke[i]);
+                }
+                alert("Pakken legget til");
+            } else {
+                var k = hovedstatPakke.length - 1;
+                for (var i = losningsordene.length - 1; i >= 0; i--) {
+                    console.log(losningsordene[i] + " vs " + hovedstatPakke[k]);
+                    if (losningsordene[i] === hovedstatPakke[k]) {
+                        console.log("SLICED: " + losningsordene[i])
+                        losningsordene.splice(i, 1);
+                        k--;
+                        // break;       //<-- Ukommenter bare hvis du trenger at det første ordet skal bli slettet
+                    }
+                }
+                alert("Pakken fjernet");
+            }
+        }
+        // funksjon for Meme pakken
+        function checkIf2() {
+            if (getAllePakker[2].checked) { // Meme pakken
+                for (var i = 0; i < memePakke.length; i++) {
+                    losningsordene.push(memePakke[i]);
+                }
+                alert("Pakken legget til");
+            } else {
+                var k = memePakke.length - 1;
+                for (var i = losningsordene.length - 1; i >= 0; i--) {
+                    console.log(losningsordene[i] + " vs " + memePakke[k]);
+                    if (losningsordene[i] === memePakke[k]) {
+                        console.log("SLICED: " + losningsordene[i])
+                        losningsordene.splice(i, 1);
+                        k--;
+                        // break;       //<-- Ukommenter bare hvis du trenger at det første ordet skal bli slettet
+                    }
+                }
+                alert("Pakken fjernet");
+            }
+        }
+        // funksjon for Vanlig Ord pakken
+        function checkIf3() {
+            if (getAllePakker[3].checked) { // Vanlig Ord pakken
+                for (var i = 0; i < vanligPakke.length; i++) {
+                    losningsordene.push(vanligPakke[i]);
+                }
+                alert("Pakken legget til");
+            } else {
+                var k = vanligPakke.length - 1;
+                for (var i = losningsordene.length - 1; i >= 0; i--) {
+                    console.log(losningsordene[i] + " vs " + vanligPakke[k]);
+                    if (losningsordene[i] === vanligPakke[k]) {
+                        console.log("SLICED: " + losningsordene[i])
+                        losningsordene.splice(i, 1);
+                        k--;
+                        // break;       //<-- Ukommenter bare hvis du trenger at det første ordet skal bli slettet
+                    }
+                }
+                alert("Pakken fjernet");
+            }
+        }
+        
+        // TEGNINGER
+        
+        function tegnGalge() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.beginPath();
+            ctx.moveTo(100, 300); // nederst til venstre
+            ctx.lineTo(100, 300); // rett opp
+            ctx.lineTo(500, 300); // mot høyre
+            ctx.lineTo(500, 320); // nederst til høyre
+            ctx.moveTo(200, 300); // bunnen av "stolpen"
+            ctx.lineTo(200, 20); // til toppen av "stolpen"
+            ctx.lineTo(350, 20); // mot høyre
+            ctx.lineTo(350, 50); // litt ned
+            ctx.lineWidth = 5;
+            ctx.stroke();
+        }
+        function tegnHode() {
+            ctx.beginPath();
+            ctx.arc(350, 75, 25, 0, Math.PI * 2); // sirkel med radius 25
+            ctx.stroke();
+        }
+        function tegnKropp() {
+            ctx.beginPath();
+            ctx.moveTo(350, 100);
+            ctx.lineTo(350, 225);
+            ctx.stroke();
+            
+        }
+        function tegnVenstreArm() {
+            ctx.beginPath();
+            ctx.moveTo(350, 125);
+            ctx.lineTo(300, 175);
+            ctx.stroke();
+            
+        }
+        function tegnHoyreArm() {
+            ctx.beginPath();
+            ctx.moveTo(350, 125);
+            ctx.lineTo(400, 175);
+            ctx.stroke();
+            
+        }
+        function tegnVenstreBein() {
+            ctx.beginPath();
+            ctx.moveTo(350, 225);
+            ctx.lineTo(300, 275);
+            ctx.stroke();
+            
+        }
+        function tegnHoyreBein() {
+            ctx.beginPath();
+            ctx.moveTo(350, 225);
+            ctx.lineTo(400, 275);
+            ctx.stroke();
+            
+        }
+    </script>
+</body>
+</html>
